@@ -44,7 +44,7 @@ class Proposition():
         unit: 1 or 0 whether object or string in name
 
     """
-    def __init__(self,name,connection = [],out_negative = 0,value = -1,unit = 1,parents = []):
+    def __init__(self,name,connection = [],out_negative = 0,value = -1,unit = 1,parent = [],brother = [],child = []):
         self.name = name
         self.connection = connection
         self.out_negative = out_negative
@@ -53,7 +53,9 @@ class Proposition():
         self.result = ''
         self.result_flag = 0
         self.result_str()
-        self.parents = parents
+        self.parent = parent
+        self.child = child
+        self.brother = brother
         print('the Proposition '+show(self.result) +' have been created')
 
 
@@ -196,6 +198,8 @@ class Proposition():
 
         """
         new = copy.deepcopy(self)
+        # new.brother = [self]
+        # self.brother = [new]
         last = self.result
 
         new.out_negative = (self.out_negative+1)%2
@@ -233,6 +237,9 @@ class Proposition():
                   show(self.name[1].result)+' through the rule simplication')
             self.name[0].value = 1
             self.name[1].value = 1
+            self.child += [self.name[0],self.name[1]]
+            self.name[0].parent += [self]
+            self.name[1].parent += [self]
             return self.name[0],self.name[1]
         else:
             print('the rule simplication may not match ' + show(self.result))
@@ -247,6 +254,9 @@ class Proposition():
             a = copy.deepcopy(self.name[0])
             b = copy.deepcopy(self.name[1])
             b.change_out_negative()
+            self.child += [a, b]
+            a.parent += [self]
+            b.parent += [self]
             print(show(self.result) +' reason a new Proposition ' + show(a.result) + ' and '+
                   show(b.result)+' through the rule negative_have_transform')
             return a,b
@@ -270,7 +280,10 @@ class Proposition():
             name = []
             name.append(a)
             name.append(self)
-            new = Proposition(name,['V'],unit=0)
+            new = Proposition(name,['V'],unit=0,value=1)
+            self.child += [new]
+            a.child += [new]
+            new.parent += [self]
             print(
                 show(self.result) + ' and ' + show(a.result) + ' reason a new Proposition ' + show(new.result) + ' through the rule addition')
             return new
@@ -289,7 +302,10 @@ class Proposition():
             name = []
             name.append(a)
             name.append(self)
-            new = Proposition(name,connection=['^'],unit=0)
+            new = Proposition(name,connection=['^'],unit=0,value=1)
+            self.child += [new]
+            a.child += [new]
+            new.parent += [self]
             print(show(self.result) + ' and ' + show(a.result) + ' reason a new Proposition ' +
                   show(new.result) + ' through the rule sum_transform')
             return new
@@ -337,7 +353,10 @@ class Proposition():
             b.change_out_negative()
             name.append(b)
             name.append(a)
-            new = Proposition(name,['->'],unit=0)
+            new = Proposition(name,['->'],unit=0,value=1)
+            self.child += [new]
+            a.child += [new]
+            new.parent += [self]
             print(show(self.result) + ' and ' + show(a.result) + ' reason a new Proposition ' + show(new.result) + ' through the rule have_transform_1')
             return new
         else:
@@ -357,7 +376,10 @@ class Proposition():
             name = []
             name.append(a)
             name.append(self)
-            new = Proposition(name, connection= ['->'],unit=0)
+            new = Proposition(name, connection= ['->'],unit=0,value=1)
+            self.child += [new]
+            a.child += [new]
+            new.parent += [self]
             print(show(self.result)+' and '+show(a.result)+' reason a new Proposition '+show(new.result)+' through the rule have_transform_2')
             return new
         else:
@@ -379,6 +401,10 @@ class Proposition():
             b = b.change_out_negative()
             if b==a.name[0]:
                 new = a.name[1]
+                new.value = 1
+                self.child += [new]
+                a.child += [new]
+                new.parent.append([self,a])
                 print(show(self.result) + ' and ' + show(a.result) + ' reason a new Proposition ' + show(
                     new.result) + ' through the rule disjunctive_syllogism')
                 return new
@@ -403,6 +429,10 @@ class Proposition():
         if self.value==1 and a.value == 1 and a.connection == ['->'] and a.unit ==0 and len(a.name)==2:
             if self == a.name[0]:
                 new = a.name[1]
+                new.value  =1
+                self.child += [new]
+                a.child += [new]
+                new.parent.append([self,a])
                 print(show(self.result) + ' and ' + show(a.result) + ' reason a new Proposition ' + show(
                     new.result) + ' through the rule modus_ponen')
                 return new
@@ -428,6 +458,10 @@ class Proposition():
             if b == a.name[1]:
                 new = copy.deepcopy(a.name[0])
                 new = new.change_out_negative()
+                new.value = []
+                self.child += [new]
+                a.child += [new]
+                new.parent.append([self,a])
                 print(show(self.result) + ' and ' + show(a.result) + ' reason a new Proposition ' + show(
                     new.result) + ' through the rule modus_tollen')
                 return new
@@ -449,6 +483,10 @@ class Proposition():
         if self.value == 1 and a.value == 1 and a.connection == ['->'] and len(self.name)==2 and self.name[1] == a.name[0] and self.connection == ['->']:
 
             new = Proposition([self.name[0],a.name[1]],connection=['->'])
+            new.value = 1
+            self.child += [new]
+            a.child += [new]
+            new.parent.append([self,a])
             print(show(self.result) + ' and ' + show(a.result) + ' reason a new Proposition ' + show(
                 new.result) + ' through the rule hypothelical_syllogism')
             return new
@@ -470,10 +508,12 @@ class Proposition():
         """
         if self.value==1 and self.connection==['->'] and len(self.name)==2:
             G = copy.deepcopy(self.name[0])
-            G.change_out_negative()
+            G = G.change_out_negative()
             name = [G,self.name[1]]
 
-            new = Proposition(name,connection=['V'])
+            new = Proposition(name,connection=['V'],value=self.value)
+            self.brother += [new]
+            new.brother += [self]
             print(show(self.result) + ' reason a new Proposition ' +
                   show(new.result) + ' through the rule arrow_transform_1')
             return new
@@ -493,10 +533,12 @@ class Proposition():
         if self.value==1 and len(self.name)==2 and self.unit == 0 and self.connection == ['V'] and len(self.name)==2:
 
             G = copy.deepcopy(self.name[0])
-            G.change_out_negative()
+            G = G.change_out_negative()
             name = [G, self.name[1]]
 
-            new = Proposition(name, connection=['->'])
+            new = Proposition(name, connection=['->'],value =1 )
+            self.brother += [new]
+            new.brother += [self]
             print(show(self.result) + ' reason a new Proposition ' +
                   show(new.result) + ' through the rule arrow_transform_2')
             return new
@@ -525,7 +567,9 @@ class Proposition():
 
             new_1 = Proposition([P_,self.name[1]],connection=['V'],unit=0)
             new_2 = Proposition([Q_, self.name[0]], connection=['V'], unit=0)
-            new = Proposition([new_1,new_2],connection='^',unit=0)
+            new = Proposition([new_1,new_2],connection='^',unit=0,value = self.value)
+            self.brother += [new]
+            new.brother += [self]
             print(show(self.result) + ' reason a new Proposition ' +
                   show(new.result) + ' through the rule two_way_arrow_transform')
             return new
@@ -546,7 +590,9 @@ class Proposition():
             new_P = new_P.change_out_negative()
             new_Q = copy.deepcopy(self.name[1])
             new_Q= new_Q.change_out_negative()
-            new = Proposition(name=[new_P,new_Q],unit=0,value = 1,connection=['V'],out_negative=1)
+            new = Proposition(name=[new_P,new_Q],unit=0,value = self.value,connection=['V'],out_negative=1)
+            self.brother += [new]
+            new.brother += [self]
             print(show(self.result) + ' reason a new Proposition ' +
                   show(new.result) + ' through the rule negate_transform')
             return new
@@ -566,6 +612,8 @@ class Proposition():
             H = H.change_out_negative()
 
             new = Proposition([G,H],connection=['^'],value=self.value,unit=0)
+            self.brother += [new]
+            new.brother += [self]
             print(show(self.result) + ' reason a new Proposition ' +
                   show(new.result) + ' through the rule De_Morgan_1')
             return new
@@ -585,6 +633,8 @@ class Proposition():
             H = H.change_out_negative()
 
             new = Proposition([G, H], connection=['V'], value=self.value, unit=0)
+            self.brother += [new]
+            new.brother += [self]
             print(show(self.result) + ' reason a new Proposition ' +
                   show(new.result) + ' through the rule De_Morgan_2')
             return new
@@ -604,6 +654,8 @@ class Proposition():
             H = H.change_out_negative()
 
             new = Proposition([G,H],connection=['V'],value=self.value,unit=0,out_negative=1)
+            self.brother += [new]
+            new.brother += [self]
             print(show(self.result) + ' reason a new Proposition ' +
                   show(new.result) + ' through the rule De_Morgan_3')
             return new
@@ -623,6 +675,8 @@ class Proposition():
             H = H.change_out_negative()
 
             new = Proposition([G, H], connection=['^'], value=self.value, unit=0,out_negative=1)
+            self.brother += [new]
+            new.brother += [self]
             print(show(self.result) + ' reason a new Proposition ' +
                   show(new.result) + ' through the rule De_Morgan_4')
             return new
@@ -644,6 +698,8 @@ class Proposition():
             H = self.name[1]
             H = H.change_out_negative()
             new = Proposition([H, G], connection=['<->'], value=self.value, unit=0, out_negative=0)
+            self.brother += [new]
+            new.brother += [self]
             print(show(self.result) + ' reason a new Proposition ' +
                   show(new.result) + ' through the rule equal_rule_1')
             return new
@@ -665,12 +721,81 @@ class Proposition():
             H = self.name[1]
             H = H.change_out_negative()
             new = Proposition([H, G], connection=['->'], value=self.value, unit=0, out_negative=0)
+            self.brother += [new]
+            new.brother += [self]
             print(show(self.result) + ' reason a new Proposition ' +
                   show(new.result) + ' through the rule equal_rule_2')
             return new
         else:
             print('the ruleequal_rule_2 may not match ' + show(self.result))
             pass
+
+    def split_1(self):
+
+        """
+        GVH =>G or H
+
+        :return:
+        """
+
+        if self.value==1 and self.connection == ['V'] and self.out_negative == 0:
+
+            G = self.name[0]
+            H = self.name[1]
+            G.parent += [self]
+            H.parent += [self]
+            self.child +=[G,H]
+            G.value = -1
+            H.value = -1
+
+            print(show(self.result) + ' reason a new Proposition ' +
+                show(G.result) +' and '+show(H.result) +' through the rule split_1')
+            return G,H
+
+        elif  self.value==0 and self.connection == ['V']:
+            G = self.name[0]
+            H = self.name[1]
+            G.value = 0
+            H.value = 0
+            G.parent += [self]
+            H.parent += [self]
+            self.child += [G, H]
+            print(show(self.result) + ' reason a new Proposition ' +
+                  show(G.result) + ' and ' + show(H.result) + ' through the rule split_1')
+            return G,H
+
+
+
+        else:
+            print('the split_1 may not match ' + show(self.result))
+            pass
+
+    def split_2(self):
+
+        """
+        G^H =>G
+        G^H => H
+        :return:
+        """
+
+        if self.value == 1 and self.connection == ['^'] and self.out_negative == 0 and self.unit == 0:
+
+            G = self.name[0]
+            H = self.name[1]
+            G.parent += [self]
+            H.parent += [self]
+            self.child.append([G, H])
+
+
+            return G,H
+
+        else:
+            print('the split_2 may not match ' + show(self.result))
+            pass
+
+
+
+
 
 
 
@@ -713,7 +838,7 @@ class Proposition():
 
     def degenerate(self):
         child = []
-        generate_function_1 = [self.simplication, self.negate_transform]
+        generate_function_1 = [self.simplication, self.negative_have_transform,self.split_1,self.split_2]
 
         for i in generate_function_1:
             new = i()

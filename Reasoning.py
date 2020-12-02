@@ -20,6 +20,18 @@ from Proposition import *
 P_total =[]
 P_true = []
 
+def merge(old,new):
+
+    for i in new:
+        flag = 1
+        for j in old:
+            if i.result == j.result:
+                flag = 0
+        if flag==1:
+            old.append(i)
+
+
+
 def mutation_append(premise):
 
     target = []
@@ -28,8 +40,10 @@ def mutation_append(premise):
        res = i.mutation()
        for new in res:
            if new:
-               target.append(new)
-               print(show(new.result) + 'has been added into P_total')
+
+                   target.append(new)
+                   print(show(new.result) + 'has been added into P_total')
+
 
 
 
@@ -85,9 +99,11 @@ def Reasoning(premise,target):
 
         generate_1 += mutation_append(generate_1)
         premise_total += (generate_1)
+        merge(premise_total,generate_1)
 
         generate_2 = degenerate_append(generate_1)
         premise_total += generate_2
+        merge(premise_total, generate_2)
 
         generate_1 = generate_2
         if last_premise==premise_total:
@@ -100,9 +116,11 @@ def Reasoning(premise,target):
 
         generate_1 += mutation_append(generate_1)
         target_total += (generate_1)
+        merge(premise_total, generate_1)
 
         generate_2 = degenerate_append(generate_1)
         target_total += generate_2
+        merge(premise_total, generate_2)
 
         generate_1 = generate_2
         if last_premise == target_total:
@@ -129,16 +147,21 @@ def Reasoning(premise,target):
 if __name__ == "__main__":
     print("----Start----")
 
-    G = Proposition(['G'], connection=[], out_negative=1, unit=0, value=1)
-    H = Proposition(['H'], connection=[], out_negative=0, unit=0, value=1)
-    G_H = Proposition([G, H], connection=['->'], unit=0, out_negative=0, value=1)
+    G = Proposition(['G'], connection=[], out_negative=0, unit=1, value=1)
+
+
+    H = Proposition(['H'], connection=[], out_negative=0, unit=1, value=1)
+    G_H = Proposition([G, H], connection=['^'], unit=0, out_negative=0, value=1)
     G__H = Proposition([G_H, H], connection=['V'], unit=0, out_negative=0, value=1)
 
-    premise = [G__H]
+    premise = [G_H]
 
     premise,target = Reasoning(premise,premise)
     for i in premise:
+        # if i.value == 1:
 
-        print(show(i.result))
+          print(show(i.result))
+
+    print(premise[2]==premise[3])
 
     print("----End------")
