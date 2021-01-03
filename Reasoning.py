@@ -14,8 +14,11 @@
 -------------------------------------------------
 """
 import numpy as np
-import pandas as pd
+
 from Proposition import *
+import sys
+
+sys.setrecursionlimit(10000)  # 例如这里设置为一百万
 
 P_total =[]
 P_true = []
@@ -131,6 +134,22 @@ def Reasoning(premise,target):
     return premise_total,target_total
 
 
+def Prove(target,premise):
+    if target.child == []:
+        for i in premise:
+            if i.equal(target):
+                return 1;
+    for i in target.brother:
+        if Prove(i,premise)==1:
+            return 1;
+
+    for i in target.child:
+        if Prove(i,premise)==1:
+            return 1;
+
+
+
+
 
 
 
@@ -147,12 +166,12 @@ def Reasoning(premise,target):
 if __name__ == "__main__":
     print("----Start----")
 
-    G = Proposition(['G'], connection=[], out_negative=0, unit=1, value=1)
+    G = Proposition(['G'], connection=[], out_negative=1, unit=1, value=1)
 
 
     H = Proposition(['H'], connection=[], out_negative=0, unit=1, value=1)
-    G_H = Proposition([G, H], connection=['^'], unit=0, out_negative=0, value=1)
-    G__H = Proposition([G_H, H], connection=['V'], unit=0, out_negative=0, value=1)
+    G_H = Proposition([G, H], connection=['V'], unit=0, out_negative=0, value=1)
+    G__H = Proposition([G, H], connection=['->'], unit=0, out_negative=0, value=1)
 
     premise = [G_H]
 
@@ -163,5 +182,6 @@ if __name__ == "__main__":
           print(show(i.result))
 
     print(premise[2]==premise[3])
+
 
     print("----End------")
